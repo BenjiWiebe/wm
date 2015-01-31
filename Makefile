@@ -4,5 +4,9 @@ all: wm
 
 wm: wm.c
 	gcc $(CFLAGS) $^ -o $@
-	sudo chown root:msg $@
-	sudo chmod a-rwx,a+x,g+s $@
+
+perms:
+	sudo chown root:msg wm
+	sudo chmod a-rwx,a+x,g+s wm
+
+.PHONY: perms
