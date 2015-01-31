@@ -45,6 +45,21 @@ FILE *open_file(char *user, char *mode)
 	return ret;
 }
 
+FILE *open_log_file(void)
+{
+	struct passwd *p = getpwuid(getuid());
+	const char file[] = {".wm_history"};
+	char *path = malloc(strlen(p->pw_dir) + 2 + sizeof file);
+	if(path == NULL)
+		ferr("malloc");
+	strcpy(path, p->pw_dir);
+	strcat(path, "/");
+	strcat(path, file);
+	FILE *fp = fopen(path, "a");
+	free(path);
+	return fp;
+}
+
 void check_file(char *user)
 {
 	char *spoolname = getspoolname(user);
@@ -118,9 +133,13 @@ int main(int argc, char *argv[])
 	}
 	check_file(argv[1]);
 	FILE *fp = open_file(argv[1], "a");
-		if(!fp)
+	FILE *logfp = open_log_file();
+	int logging = 1;
+	if(!fp)
 		ferr("fopen");
 	int x;
+	if(logging)
+		fprintf(logfp, "->%s: ", argv[1]);
 	fprintf(fp, "%s: ", whoami());
 	while((x = fgetc(stdin)))
 	{
@@ -129,6 +148,8 @@ int main(int argc, char *argv[])
 		if(x > 128 || isprint(x))
 		{
 			fputc(x, fp);
+			if(logging)
+				fputc(x, logfp);
 		}
 		else
 		{
@@ -141,9 +162,16 @@ int main(int argc, char *argv[])
 			f > 9 ? (tmp[3] = 'A' + (f-10)) : (tmp[3] = '0' + f);
 			tmp[4] = 0;
 			fputs(tmp, fp);
+			if(logging)
+				fputs(tmp, logfp);
 		}
 	}
 	fputc((int)'\n', fp);
+	if(logging)
+	{
+		fputc((int)'\n', logfp);
+		fclose(logfp);
+	}
 	fclose(fp);
 	return 0;
 }
