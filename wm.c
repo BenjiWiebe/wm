@@ -102,7 +102,12 @@ int main(int argc, char *argv[])
 	check_file(whoami());
 	if(argc == 1)
 	{
-		FILE *spool = open_file(whoami(), "r+");
+		char *me = whoami();
+		struct stat st;
+		stat(getspoolname(me), &st);
+		if(!st.st_size)
+			exit(EXIT_SUCCESS);
+		FILE *spool = open_file(me, "r+");
 		if(!spool)
 			ferr("fopen");
 		cat(spool, stdout);
