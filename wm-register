@@ -1,0 +1,13 @@
+#!/bin/sh
+if ! id -Gn "$1" 2>&1 | grep -qw ssh_allowed; then
+	echo "User does not exist or is not a member of group ssh_allowed."
+	exit 1
+fi
+spool="/var/spool/msg/$1"
+if touch "$spool" && chown root:msg "$spool" && chmod 660 "$spool"; then
+	echo "Registered $1."
+	exit 0
+else
+	echo "Registering $1 failed."
+	exit 1
+fi

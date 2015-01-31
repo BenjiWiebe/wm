@@ -1,0 +1,14 @@
+#!/bin/sh
+spool="/var/spool/msg/$1"
+if test -a "$spool"; then
+	if rm "$spool"; then
+		echo "Unregisted $1."
+		exit 0
+	else
+		echo "Failed to unregister $1."
+		exit 1
+	fi
+else
+	echo "$1 is not registered."
+	exit 1
+fi
