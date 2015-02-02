@@ -9,8 +9,8 @@ perms: wm
 	chown root:msg wm
 	chmod a-rwx,a+x,g+s wm
 
-install: perms
-	install ./wm /usr/misc/bin/wm
+install:
+	install -g msg -o root -s -m 2111 ./wm /usr/misc/bin/wm
 
 clean:
 	rm -f wm
