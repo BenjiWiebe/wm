@@ -86,7 +86,7 @@ void check_user(char *user)
 	}
 }
 
-char *whoami(void)
+char *getusername(void)
 {
 	struct passwd *result = getpwuid(getuid());
 	if(!result)
@@ -107,6 +107,26 @@ void cat(FILE *in, FILE *out)
 	}
 }
 
+void read_messages(char *myname)
+{
+	// Check spool file size; if empty, exit
+	struct stat st;
+	stat(getspoolname(myname), &st);
+	if(!st.st_size)
+		exit(EXIT_SUCCESS);
+
+	// Open spool file to read, since it isn't empty
+	FILE *spool = open_file(myname, "r+");
+	if(!spool)
+		ferr("fopen");
+	cat(spool, stdout);
+	if(ftruncate(fileno(spool), 0) < 0)
+		ferr("ftruncate");
+	fclose(spool);
+	exit(EXIT_SUCCESS);
+}
+
+
 int main(int argc, char *argv[])
 {
 	if(argc > 2)
@@ -114,21 +134,11 @@ int main(int argc, char *argv[])
 		printf("Usage: %s <user>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
-	check_file(whoami());
+	char *myname = getusername();
+	check_file(myname);
 	if(argc == 1)
 	{
-		char *me = whoami();
-		struct stat st;
-		stat(getspoolname(me), &st);
-		if(!st.st_size)
-			exit(EXIT_SUCCESS);
-		FILE *spool = open_file(me, "r+");
-		if(!spool)
-			ferr("fopen");
-		cat(spool, stdout);
-		if(ftruncate(fileno(spool), 0) < 0)
-			ferr("ftruncate");
-		fclose(spool);
+		read_messages(myname);
 		exit(EXIT_SUCCESS);
 	}
 	check_file(argv[1]);
@@ -140,7 +150,7 @@ int main(int argc, char *argv[])
 	int x;
 	if(logging)
 		fprintf(logfp, "->%s: ", argv[1]);
-	fprintf(fp, "%s: ", whoami());
+	fprintf(fp, "%s: ", myname);
 	while((x = fgetc(stdin)))
 	{
 		if(x == '\r' || x == '\n' || x == EOF || x == 0)
