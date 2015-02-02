@@ -5,8 +5,14 @@ all: wm
 wm: wm.c
 	gcc $(CFLAGS) $^ -o $@
 
-perms:
-	sudo chown root:msg wm
-	sudo chmod a-rwx,a+x,g+s wm
+perms: wm
+	chown root:msg wm
+	chmod a-rwx,a+x,g+s wm
 
-.PHONY: perms
+install: perms
+	install ./wm /usr/misc/bin/wm
+
+clean:
+	rm -f wm
+
+.PHONY: perms install clean
