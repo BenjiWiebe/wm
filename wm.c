@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 	char *myname = getusername();
 	if(!can_user_use_wm(myname))
 	{
-		printf("Sorry, you aren't registered to use wm.\nPlease talk to your administrator if you want to use it.\n");
+		printf("Sorry, you aren't registered to use wm.\n");
 		exit(EXIT_FAILURE);
 	}
 	check_file(myname);
@@ -169,6 +169,11 @@ int main(int argc, char *argv[])
 	{
 		read_messages(myname);
 		exit(EXIT_SUCCESS);
+	}
+	if(!can_user_use_wm(argv[1]))
+	{
+		printf("Sorry, %s isn't registered to use wm.\n", argv[1]);
+		exit(EXIT_FAILURE);
 	}
 	check_file(argv[1]);
 	FILE *fp = open_file(argv[1], "a");
