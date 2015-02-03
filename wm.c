@@ -19,6 +19,9 @@
  * [user@host ~]$ sudo chgrp msg $SPOOL_DIR
  */
 
+int logging = 1;
+FILE *logfp = NULL;
+
 void ferr(char *func)
 {
 	perror(func);
@@ -31,7 +34,6 @@ char *getspoolname(char *user)
 	char *spoolname = (char*)malloc(spoolnamelen);
 	if(!spoolname)
 		ferr("malloc");
-	memset(spoolname, 0, spoolnamelen);
 	strcpy(spoolname, SPOOL_DIR);
 	strcat(spoolname, user);
 	return spoolname;
@@ -96,15 +98,16 @@ char *getusername(void)
 
 void cat(FILE *in, FILE *out)
 {
-	char buf[256];
-	int n;
-	while((n = fread(buf, 1, 256, in)))
-	{
-		if(n == 0 && ferror(in))
-			ferr("fread");
-		if(fwrite(buf, 1, n, out) == 0 && ferror(out))
-			ferr("fwrite");
-	}
+	char *buf = NULL;
+	ssize_t bytesread = 0;
+	size_t n = 0;
+	errno = 0;
+	while((bytesread = getline(&buf, &n, in)) != -1)
+		if(fputs(buf, out) < 0)
+			ferr("fputs");
+	if(errno)
+		ferr("getline");
+	free(buf);
 }
 
 void read_messages(char *myname)
@@ -120,9 +123,16 @@ void read_messages(char *myname)
 	if(!spool)
 		ferr("fopen");
 	cat(spool, stdout);
+	if(logging)
+	{
+		fputs("  ", logfp);
+		rewind(spool);
+		cat(spool, logfp);
+	}
 	if(ftruncate(fileno(spool), 0) < 0)
 		ferr("ftruncate");
 	fclose(spool);
+	fclose(logfp);
 	exit(EXIT_SUCCESS);
 }
 
@@ -136,6 +146,7 @@ int main(int argc, char *argv[])
 	}
 	char *myname = getusername();
 	check_file(myname);
+	logfp = open_log_file();
 	if(argc == 1)
 	{
 		read_messages(myname);
@@ -143,8 +154,6 @@ int main(int argc, char *argv[])
 	}
 	check_file(argv[1]);
 	FILE *fp = open_file(argv[1], "a");
-	FILE *logfp = open_log_file();
-	int logging = 1;
 	if(!fp)
 		ferr("fopen");
 	int x;
