@@ -39,6 +39,19 @@ char *getspoolname(char *user)
 	return spoolname;
 }
 
+int can_user_use_wm(char *user)
+{
+	char *sp = getspoolname(user);
+	struct stat s;
+	int res = stat(sp, &s);
+	free(sp);
+	if(res < 0)
+		return 0;
+	if(s.st_mode != 33200)
+		return 0;
+	return 1;
+}
+
 FILE *open_file(char *user, char *mode)
 {
 	char *spoolname = getspoolname(user);
@@ -145,6 +158,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	char *myname = getusername();
+	if(!can_user_use_wm(myname))
+	{
+		printf("Sorry, you aren't registered to use wm.\nPlease talk to your administrator if you want to use it.\n");
+		exit(EXIT_FAILURE);
+	}
 	check_file(myname);
 	logfp = open_log_file();
 	if(argc == 1)
