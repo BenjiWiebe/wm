@@ -109,15 +109,20 @@ char *getusername(void)
 	return result->pw_name;
 }
 
-void cat(FILE *in, FILE *out)
+void cat(FILE *in, FILE *out, int do_prefix)
 {
 	char *buf = NULL;
 	ssize_t bytesread = 0;
 	size_t n = 0;
 	errno = 0;
 	while((bytesread = getline(&buf, &n, in)) != -1)
+	{
+		if(do_prefix)
+			if(fputs("  ", out) < 0)
+				ferr("fputs");
 		if(fputs(buf, out) < 0)
 			ferr("fputs");
+	}
 	if(errno)
 		ferr("getline");
 	free(buf);
@@ -135,12 +140,11 @@ void read_messages(char *myname)
 	FILE *spool = open_file(myname, "r+");
 	if(!spool)
 		ferr("fopen");
-	cat(spool, stdout);
+	cat(spool, stdout, 0);
 	if(logging)
 	{
-		fputs("  ", logfp);
 		rewind(spool);
-		cat(spool, logfp);
+		cat(spool, logfp, 1);
 	}
 	if(ftruncate(fileno(spool), 0) < 0)
 		ferr("ftruncate");
