@@ -168,41 +168,31 @@ int main(int argc, char *argv[])
 	FILE *fp = open_file(argv[1], "a");
 	if(!fp)
 		ferr("fopen");
-	int x;
-	if(logging)
-		fprintf(logfp, "->%s: ", argv[1]);
-	fprintf(fp, "%s: ", myname);
-	while((x = fgetc(stdin)))
+	unsigned char *msg = NULL;
+	size_t n;
+	ssize_t msg_size = getline((char**)&msg, &n, stdin);
+	if(msg_size == -1)
 	{
-		if(x == '\r' || x == '\n' || x == EOF || x == 0)
-			break;
-		if(x > 128 || isprint(x))
-		{
-			fputc(x, fp);
-			if(logging)
-				fputc(x, logfp);
-		}
+		if(errno == 0)
+			return 0;
 		else
-		{
-			char tmp[5];
-			tmp[0] = '\\';
-			tmp[1] = 'x';
-			char f = x / 16;
-			f > 9 ? (tmp[2] = 'A' + (f-10)) : (tmp[2] = '0' + f);
-			f = x % 16;
-			f > 9 ? (tmp[3] = 'A' + (f-10)) : (tmp[3] = '0' + f);
-			tmp[4] = 0;
-			fputs(tmp, fp);
-			if(logging)
-				fputs(tmp, logfp);
-		}
+			ferr("getline");
 	}
-	fputc((int)'\n', fp);
-	if(logging)
+	if(msg[msg_size-1] == '\n')
+		msg[--msg_size] = 0;
+	if(msg_size != 0)
 	{
-		fputc((int)'\n', logfp);
-		fclose(logfp);
+		int i = msg_size;
+		while(i--)
+			if(msg[i] < 128 && !isprint(msg[i]))
+				msg[i] = '?';
+
+		if(logging)
+			fprintf(logfp, "->%s: %s\n", argv[1], msg);
+		fprintf(fp, "%s: %s\n", myname, msg);
 	}
+	if(logging)
+		fclose(logfp);
 	fclose(fp);
 	return 0;
 }
