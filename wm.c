@@ -86,21 +86,6 @@ void check_file(char *user)
 	free(spoolname);
 }
 
-void check_user(char *user)
-{
-	struct passwd *result = getpwnam(user);
-	if(!result)
-	{
-		fprintf(stderr, "User %s does not exist.\n", user);
-		exit(EXIT_FAILURE);
-	}
-	if(result->pw_uid < 1000)
-	{
-		fprintf(stderr, "User %s is a reserved system account.\n", user);
-		exit(EXIT_FAILURE);
-	}
-}
-
 char *getusername(void)
 {
 	struct passwd *result = getpwuid(getuid());
