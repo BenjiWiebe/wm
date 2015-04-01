@@ -11,6 +11,7 @@ perms: wm
 
 install: wm
 	install -g msg -o root -s -m 2111 ./wm /usr/misc/bin/wm
+	install -g root -o root -m 0644 ./wm-complete.sh /etc/bash_completion.d/wm
 
 clean:
 	rm -f wm
