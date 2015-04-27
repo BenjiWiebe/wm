@@ -30,6 +30,11 @@ void ferr(char *func)
 
 char *getspoolname(char *user)
 {
+	if(user == NULL)
+	{
+		errno = EINVAL;
+		ferr("getspoolname");
+	}
 	int spoolnamelen = strlen(user) + SPOOL_DIR_LEN;
 	char *spoolname = (char*)malloc(spoolnamelen);
 	if(!spoolname)
@@ -44,12 +49,38 @@ int can_user_use_wm(char *user)
 	char *sp = getspoolname(user);
 	struct stat s;
 	int res = stat(sp, &s);
-	free(sp);
 	if(res < 0)
 		return 0;
 	if(s.st_mode != 33200)
 		return 0;
+	int n = open(sp, O_RDWR);
+	if(n < 0)
+		return 0;
+	close(n);
+	free(sp);
 	return 1;
+}
+
+// Returns a handle to the spool file
+// Returns NULL if user is not allowed to use wm.
+FILE *open_spool(char *user, char *mode)
+{
+	if(user == NULL || mode == NULL)
+	{
+		errno = EINVAL;
+		return NULL;
+	}
+	char *sp = getspoolname(user);
+	struct stat s;
+	int res = stat(sp, &s);
+	errno = 0;
+	if(res < 0)
+		return NULL;
+	if(s.st_mode != 33200)
+		return NULL;
+
+	errno = 0;
+	return NULL;
 }
 
 FILE *open_file(char *user, char *mode)
@@ -73,17 +104,6 @@ FILE *open_log_file(void)
 	FILE *fp = fopen(path, "a");
 	free(path);
 	return fp;
-}
-
-void check_file(char *user)
-{
-	char *spoolname = getspoolname(user);
-	int n = open(spoolname, O_CREAT, 0600);
-	if(n < 0)
-		ferr("open");
-	else
-		close(n);
-	free(spoolname);
 }
 
 char *getusername(void)
@@ -141,18 +161,23 @@ void read_messages(char *myname)
 
 int main(int argc, char *argv[])
 {
-	if(argc > 2)
+	if(argc >= 2 && !strcmp(argv[1], "--help"))
 	{
-		printf("Usage: %s <user>\n", argv[0]);
+		printf("Usage: %s <list of users>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
+
+	// Check to see if we are allowed to use wm
 	char *myname = getusername();
 	if(!can_user_use_wm(myname))
 	{
-		printf("Sorry, you aren't registered to use wm.\n");
+		printf("Sorry, you aren't registered to use wm");
+		if(errno != ENOENT)
+			printf(" (%s)", strerror(errno));
+		printf(".\n");
 		exit(EXIT_FAILURE);
 	}
-	check_file(myname);
+
 	logfp = open_log_file();
 	if(argc == 1)
 	{
@@ -161,10 +186,12 @@ int main(int argc, char *argv[])
 	}
 	if(!can_user_use_wm(argv[1]))
 	{
-		printf("Sorry, %s isn't registered to use wm.\n", argv[1]);
+		printf("Sorry, %s isn't registered to use wm", argv[1]);
+		if(errno != ENOENT)
+			printf(" (%s)", strerror(errno));
+		printf(".\n");
 		exit(EXIT_FAILURE);
 	}
-	check_file(argv[1]);
 	FILE *fp = open_file(argv[1], "a");
 	if(!fp)
 		ferr("fopen");
