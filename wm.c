@@ -101,6 +101,10 @@ FILE *open_log_file(void)
 	strcpy(path, p->pw_dir);
 	strcat(path, "/");
 	strcat(path, file);
+	struct stat st;
+	int r = stat(path, &st);
+	if(r == ENOENT)
+		close(open(path, O_CREAT, S_IWUSR|S_IRUSR));
 	FILE *fp = fopen(path, "a");
 	free(path);
 	return fp;
