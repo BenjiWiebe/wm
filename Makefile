@@ -1,19 +1,29 @@
 CFLAGS=-Wall -Werror -Wextra -g -O0 -std=gnu99
+PREFIX?=/usr
+PROG=wm
+GROUP=msg
+SPOOLDIR=/var/spool/msg
 
-all: wm
+all: $(PROG)
 
-wm: wm.c
+$(PROG): $(PROG).c
 	gcc $(CFLAGS) $^ -o $@
 
-perms: wm
-	chown root:msg wm
-	chmod a-rwx,a+x,g+s wm
+perms: $(PROG)
+	chown root:$(GROUP) $(PROG)
+	chmod a-rwx,a+x,g+s $(PROG)
 
-install: wm
-	install -g msg -o root -s -m 2111 ./wm /usr/misc/bin/wm
-	install -g root -o root -m 0644 ./wm-complete.sh /etc/bash_completion.d/wm
+install: $(PROG)
+	@getent group $(GROUP) >/dev/null || ( echo 'No such group: $(GROUP). Please create it and try again.' && exit 1 )
+	install -g msg -o root -s -m 2111 ./$(PROG) $(PREFIX)/bin
+	install -g root -o root -m 0755 ./wm-register $(PREFIX)/bin
+	install -g root -o root -m 0755 ./wm-unregister $(PREFIX)/bin
+	install -g root -o root -m 0644 ./$(PROG)-complete.sh /etc/bash_completion.d/$(PROG)
+	install -g root -o root -m 0755 -d $(SPOOLDIR)
+	@echo
+	@echo "Don't forget to run wm-register <user> for all users that will be using $(PROG)."
 
 clean:
-	rm -f wm
+	rm -f $(PROG)
 
 .PHONY: perms install clean
