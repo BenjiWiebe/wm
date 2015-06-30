@@ -20,6 +20,7 @@ install: $(PROG)
 	install -g root -o root -m 0755 ./wm-unregister $(PREFIX)/bin
 	install -g root -o root -m 0644 ./$(PROG)-complete.sh /etc/bash_completion.d/$(PROG)
 	install -g root -o root -m 0755 -d $(SPOOLDIR)
+	install -g root -o root -m 0644 ./$(PROG)-prompt-command.sh /etc/profile.d/
 	@echo
 	@echo "Don't forget to run wm-register <user> for all users that will be using $(PROG)."
 
