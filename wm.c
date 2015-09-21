@@ -59,28 +59,6 @@ int can_user_use_wm(char *user)
 	return 1;
 }
 
-// Returns a handle to the spool file
-// Returns NULL if user is not allowed to use wm.
-FILE *open_spool(char *user, char *mode)
-{
-	if(user == NULL || mode == NULL)
-	{
-		errno = EINVAL;
-		return NULL;
-	}
-	char *sp = getspoolname(user);
-	struct stat s;
-	int res = stat(sp, &s);
-	errno = 0;
-	if(res < 0)
-		return NULL;
-	if(s.st_mode != 33200)
-		return NULL;
-
-	errno = 0;
-	return NULL;
-}
-
 FILE *open_file(char *user, char *mode)
 {
 	char *spoolname = getspoolname(user);
