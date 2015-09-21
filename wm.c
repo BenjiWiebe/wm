@@ -53,10 +53,8 @@ int can_user_use_wm(char *user)
 		return 0;
 	if(s.st_mode != 33200)
 		return 0;
-	int n = open(sp, O_RDWR);
-	if(n < 0)
+	if(s.st_uid != getuid())
 		return 0;
-	close(n);
 	free(sp);
 	return 1;
 }
