@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #define SPOOL_DIR		"/var/spool/msg/"
 #define SPOOL_DIR_LEN	16
@@ -42,21 +43,6 @@ char *getspoolname(char *user)
 	strcpy(spoolname, SPOOL_DIR);
 	strcat(spoolname, user);
 	return spoolname;
-}
-
-int can_user_use_wm(char *user)
-{
-	char *sp = getspoolname(user);
-	struct stat s;
-	int res = stat(sp, &s);
-	if(res < 0)
-		return 0;
-	if(s.st_mode != 33200)
-		return 0;
-	if(s.st_uid != getuid())
-		return 0;
-	free(sp);
-	return 1;
 }
 
 FILE *open_file(char *user, char *mode)
@@ -138,6 +124,29 @@ void read_messages(char *myname)
 	exit(EXIT_SUCCESS);
 }
 
+// Checks to see if a user is registered for wm
+bool is_registered(char *user)
+{
+	const mode_t magic_mode = 33200; // This is what the mode of the spool file should be
+	char *sp = getspoolname(user);
+	struct stat s;
+	int res = stat(sp, &s);
+	free(sp);
+
+	if(res < 0)
+	{
+		if(errno == ENOENT)
+			return false; // That was easy! The spool file does not exist.
+		else
+			ferr("stat"); // Something went wrong...
+	}
+
+	if(s.st_mode != magic_mode)
+	{
+		fprintf(stderr, "Contact your administrator; the mode for %s's spool file is incorrect. (Is: %d, should be: %d)\n", user, s.st_mode, magic_mode);
+	}
+	return true;
+}
 
 int main(int argc, char *argv[])
 {
@@ -149,12 +158,9 @@ int main(int argc, char *argv[])
 
 	// Check to see if we are allowed to use wm
 	char *myname = getusername();
-	if(!can_user_use_wm(myname))
+	if(!is_registered(myname))
 	{
-		printf("Sorry, you aren't registered to use wm");
-		if(errno != ENOENT)
-			printf(" (%s)", strerror(errno));
-		printf(".\n");
+		printf("Sorry, you aren't registered to use wm.\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -164,12 +170,9 @@ int main(int argc, char *argv[])
 		read_messages(myname);
 		exit(EXIT_SUCCESS);
 	}
-	if(!can_user_use_wm(argv[1]))
+	if(!is_registered(argv[1]))
 	{
-		printf("Sorry, %s isn't registered to use wm", argv[1]);
-		if(errno != ENOENT)
-			printf(" (%s)", strerror(errno));
-		printf(".\n");
+		printf("Sorry, %s isn't registered to use wm.\n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
 	FILE *fp = open_file(argv[1], "a");
